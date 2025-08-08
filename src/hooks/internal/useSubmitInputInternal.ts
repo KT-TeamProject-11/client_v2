@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { postProcessBlock } from "../../services/BlockService/BlockService";
 import { processIsSensitive } from "../../services/BlockService/IsSensitiveProcessor";
@@ -20,205 +20,232 @@ import { usePathsContext } from "../../context/PathsContext";
  * Internal custom hook for managing user input submissions.
  */
 export const useSubmitInputInternal = () => {
-	// handles settings
-	const { settings } = useSettingsContext();
+  // settings
+  const { settings } = useSettingsContext();
 
-	// handles messages
-	const {
-		endStreamMessage,
-		injectMessage,
-		removeMessage,
-		simulateStreamMessage,
-		streamMessage
-	} = useMessagesInternal();
+  // messages
+  const {
+    endStreamMessage,
+    injectMessage,
+    removeMessage,
+    simulateStreamMessage,
+    streamMessage
+  } = useMessagesInternal();
 
-	// handles paths
-	const { syncedPathsRef } = usePathsContext();
-	const { getCurrPath, getPrevPath, goToPath, firePostProcessBlockEvent } = usePathsInternal();
+  // paths
+  const { syncedPathsRef } = usePathsContext();
+  const { getCurrPath, getPrevPath, goToPath, firePostProcessBlockEvent } = usePathsInternal();
 
-	// handles bot states
-	const {
-		setSyncedTextAreaSensitiveMode,
-		setSyncedTextAreaDisabled,
-		setSyncedIsBotTyping,
-		setBlockAllowsAttachment,
-		setInputLength,
-		syncedVoiceToggledOnRef,
-		syncedTextAreaSensitiveModeRef,
-	} = useBotStatesContext();
+  // bot states
+  const {
+    setSyncedTextAreaSensitiveMode,
+    setSyncedTextAreaDisabled,
+    setSyncedIsBotTyping,
+    setBlockAllowsAttachment,
+    setInputLength,
+    syncedVoiceToggledOnRef,
+    syncedTextAreaSensitiveModeRef,
+  } = useBotStatesContext();
 
-	// handles bot refs
-	const { flowRef, inputRef, keepVoiceOnRef, paramsInputRef, timeoutIdRef } = useBotRefsContext();
+  // bot refs
+  const { flowRef, inputRef, keepVoiceOnRef, paramsInputRef, timeoutIdRef } = useBotRefsContext();
 
-	// handles toasts
-	const { showToast, dismissToast } = useToastsInternal();
+  // toast
+  const { showToast, dismissToast } = useToastsInternal();
 
-	// handles rcb events
-	const { dispatchRcbEvent } = useDispatchRcbEventInternal();
+  // rcb events
+  const { dispatchRcbEvent } = useDispatchRcbEventInternal();
 
-	// handles voice
-	const { syncVoice } = useVoiceInternal();
+  // voice
+  const { syncVoice } = useVoiceInternal();
 
-	// handles input text area
-	const { setTextAreaValue } = useTextAreaInternal();
+  // textarea
+  const { setTextAreaValue } = useTextAreaInternal();
 
-	// handles chat window
-	const { toggleChatWindow } = useChatWindowInternal();
+  // chat window
+  const { toggleChatWindow } = useChatWindowInternal();
 
-	/**
-	 * Handles sending of user input to check if should send as plain text or sensitive info.
-	 * 
-	 * @param userInput input provided by the user
-	 */
-	const handleSendUserInput = useCallback(async (userInput: string) => {
-		const currPath = getCurrPath();
-		if (!currPath) {
-			return;
-		}
+  const BACKEND_URL = "http://127.0.0.1:8555/chat";
+  const firstMessageShown = useRef(false);
 
-		const block = (flowRef.current as Flow)[currPath];
-		if (!block) {
-			return;
-		}
+  // 처음 로드 시만 환영 메시지 출력
+  useEffect(() => {
+    if (!firstMessageShown.current) {
+      injectMessage("안녕하세요 무엇을 도와드릴까요?", "BOT");
+      firstMessageShown.current = true;
+    }
+  }, [injectMessage]);
 
-		if (syncedTextAreaSensitiveModeRef.current) {
-			if (settings?.sensitiveInput?.hideInUserBubble) {
-				return;
-			} else if (settings?.sensitiveInput?.maskInUserBubble) {
-				if (settings.userBubble?.simulateStream) {
-					await simulateStreamMessage(
-						"*".repeat(settings.sensitiveInput?.asterisksCount as number ?? 10),
-						"USER"
-					);
-				} else {
-					await injectMessage("*".repeat(settings.sensitiveInput?.asterisksCount as number ?? 10), "USER");
-				}
-				return;
-			}
-		}
+  /**
+   * Handles sending of user input
+   */
+  const handleSendUserInput = useCallback(async (userInput: string) => {
+    const currPath = getCurrPath();
+    if (!currPath) return;
 
-		if (settings.userBubble?.simulateStream) {
-			await simulateStreamMessage(userInput, "USER");
-		} else {
-			await injectMessage(userInput, "USER");
-		}
-	}, [flowRef, getCurrPath, settings, injectMessage, simulateStreamMessage, syncedTextAreaSensitiveModeRef]);
+    const block = (flowRef.current as Flow)[currPath];
+    if (!block) return;
 
-	/**
-	 * Handles action input from the user which includes text, files and emoji.
-	 * 
-	 * @param userInput input provided by the user
-	 * @param sendUserInput boolean indicating if user input should be sent as a message into the chat window
-	 */
-	const handleActionInput = useCallback(async (userInput: string, sendUserInput = true) => {
-		userInput = userInput.trim();
-		if (userInput === "") {
-			return;
-		}
+    if (syncedTextAreaSensitiveModeRef.current) {
+      if (settings?.sensitiveInput?.hideInUserBubble) {
+        return;
+      } else if (settings?.sensitiveInput?.maskInUserBubble) {
+        const masked = "*".repeat((settings.sensitiveInput?.asterisksCount as number) ?? 10);
+        if (settings.userBubble?.simulateStream) {
+          await simulateStreamMessage(masked, "USER");
+        } else {
+          await injectMessage(masked, "USER");
+        }
+        return;
+      }
+    }
 
-		// sends user message into chat body
-		if (sendUserInput) {
-			await handleSendUserInput(userInput);
-		}
+    if (settings.userBubble?.simulateStream) {
+      await simulateStreamMessage(userInput, "USER");
+    } else {
+      await injectMessage(userInput, "USER");
+    }
+  }, [flowRef, getCurrPath, settings, injectMessage, simulateStreamMessage, syncedTextAreaSensitiveModeRef]);
 
-		// if transition attribute was used, clear timeout
-		if (timeoutIdRef.current) {
-			clearTimeout(timeoutIdRef.current);
-		}
+  /**
+   * 백엔드로부터 스트리밍 응답을 받아서 하나의 BOT 말풍선에 출력
+   */
+  const streamBotAnswerFromBackend = useCallback(async (prompt: string) => {
+    try {
+      const resp = await fetch(BACKEND_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: String(prompt) }), // 항상 string으로
+      });
 
-		// clears input field
-		if (inputRef.current) {
-			setTextAreaValue("");
-			setInputLength(0);
-		}
+      if (!resp.ok || !resp.body) {
+        throw new Error(`Bad response: ${resp.status}`);
+      }
 
-		// ***** start of postprocessing logic *****
+      setSyncedIsBotTyping(true);
 
-		const currPath = getCurrPath();
-		if (!currPath) {
-			return;
-		}
+      // BOT 말풍선 생성 (빈 상태)
+      await injectMessage("", "BOT");
 
-		let block = (flowRef.current as Flow)[currPath];
-		// fire event and use final block (if applicable)
-		// finalBlock is used because it's possible users update the block in the event
-		const finalBlock = await firePostProcessBlockEvent(block);
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let done = false;
 
-		// if no final block means event was prevented, so just return
-		if (!finalBlock) {
-			return;
-		}
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          if (chunk) {
+            await streamMessage(chunk, "BOT"); // 기존 BOT 말풍선에 추가
+          }
+        }
+      }
 
-		// disables text area if block spam is true
-		if (settings.chatInput?.blockSpam) {
-			setSyncedTextAreaDisabled(true);
-		}
+      await endStreamMessage("BOT");
+      setSyncedIsBotTyping(false);
+    } catch (err) {
+      setSyncedIsBotTyping(false);
+      await injectMessage("서버 응답에 문제가 발생했어요. 잠시 후 다시 시도해주세요.", "BOT");
+      console.error(err);
+    }
+  }, [BACKEND_URL, streamMessage, endStreamMessage, injectMessage, setSyncedIsBotTyping]);
 
-		// tracks if voice is to be kept on later
-		keepVoiceOnRef.current = syncedVoiceToggledOnRef.current;
-		syncVoice(false);
-		
-		// shows bot typing indicator
-		setTimeout(() => {
-			setSyncedIsBotTyping(true);
-		}, 400);
+  /**
+   * Handles action input
+   */
+  const handleActionInput = useCallback(async (userInput: string, sendUserInput = true) => {
+    userInput = userInput.trim();
+    if (userInput === "") return;
 
-		// after user sends input, set sensitive mode to false first (default)
-		// will be overriden if next block also has isSensitive attribute
-		setSyncedTextAreaSensitiveMode(false);
+    if (sendUserInput) {
+      await handleSendUserInput(userInput);
+    }
 
-		setTimeout(async () => {
-			const params = {prevPath: getPrevPath(), currPath: getCurrPath(), goToPath, setTextAreaValue,
-				userInput: paramsInputRef.current, injectMessage, simulateStreamMessage, streamMessage,
-				removeMessage, endStreamMessage, toggleChatWindow, showToast, dismissToast
-			};
-			const currNumPaths = syncedPathsRef.current.length;
-			await postProcessBlock(finalBlock, params);
-			// if same length, means post-processing did not path to a block and if so, reset to current block states
-			if (syncedPathsRef.current.length === currNumPaths) {
-				if ("chatDisabled" in block) {
-					setSyncedTextAreaDisabled(!!block.chatDisabled);
-				} else {
-					setSyncedTextAreaDisabled(!!settings.chatInput?.disabled);
-				}
-				processIsSensitive(block, params, setSyncedTextAreaSensitiveMode);
-				setBlockAllowsAttachment(typeof block.file === "function");
-				syncVoice(keepVoiceOnRef.current);
-				setSyncedIsBotTyping(false);
-			}
-		}, settings.chatInput?.botDelay);
+    if (timeoutIdRef.current) {
+      clearTimeout(timeoutIdRef.current);
+    }
 
-		// ***** end of postprocessing logic *****
+    if (inputRef.current) {
+      setTextAreaValue("");
+      setInputLength(0);
+    }
 
-	}, [timeoutIdRef, settings.chatInput?.blockSpam, settings.chatInput?.botDelay, settings.chatInput?.disabled,
-		keepVoiceOnRef, syncedVoiceToggledOnRef, syncVoice, handleSendUserInput, getPrevPath, getCurrPath, goToPath,
-		injectMessage, simulateStreamMessage, streamMessage, removeMessage, endStreamMessage, toggleChatWindow,
-		showToast, dismissToast, flowRef
-	]);
+    const currPath = getCurrPath();
+    if (!currPath) return;
 
-	/**
-	 * Handles submission of user input via enter key or send button.
-	 * 
-	 * @param inputText input to send, if not provided defaults to text area value
-	 */
-	const handleSubmitText = useCallback(async (inputText?: string, sendInChat = true) => {
-		// if no user input provided, grab from text area
-		inputText = inputText ?? inputRef.current?.value as string;
+    let block = (flowRef.current as Flow)[currPath];
+    const finalBlock = await firePostProcessBlockEvent(block);
+    if (!finalBlock) return;
 
-		// handles user send text event
-		if (settings.event?.rcbUserSubmitText) {
-			const event = await dispatchRcbEvent(RcbEvent.USER_SUBMIT_TEXT, {inputText, sendInChat});
-			if (event.defaultPrevented) {
-				return;
-			}
-		}
-		
-		const currPath = getCurrPath();
-		if (!currPath) {
-			return;
-		}
-		handleActionInput(inputText, sendInChat);
-	}, [dispatchRcbEvent, getCurrPath, handleActionInput, inputRef, settings.event?.rcbUserSubmitText])
+    if (settings.chatInput?.blockSpam) setSyncedTextAreaDisabled(true);
 
-	return { handleSubmitText }
+    keepVoiceOnRef.current = syncedVoiceToggledOnRef.current;
+    syncVoice(false);
+
+    setTimeout(() => setSyncedIsBotTyping(true), 400);
+
+    setSyncedTextAreaSensitiveMode(false);
+
+    setTimeout(async () => {
+      const params = {
+        prevPath: getPrevPath(),
+        currPath: getCurrPath(),
+        goToPath,
+        setTextAreaValue,
+        userInput: paramsInputRef.current,
+        injectMessage,
+        simulateStreamMessage,
+        streamMessage,
+        removeMessage,
+        endStreamMessage,
+        toggleChatWindow,
+        showToast,
+        dismissToast
+      };
+
+      const currNumPaths = syncedPathsRef.current.length;
+
+      await postProcessBlock(finalBlock, params);
+
+      if (syncedPathsRef.current.length === currNumPaths) {
+        await streamBotAnswerFromBackend(userInput);
+
+        if ("chatDisabled" in block) {
+          setSyncedTextAreaDisabled(!!(block as any).chatDisabled);
+        } else {
+          setSyncedTextAreaDisabled(!!settings.chatInput?.disabled);
+        }
+        processIsSensitive(block, params, setSyncedTextAreaSensitiveMode);
+        setBlockAllowsAttachment(typeof (block as any).file === "function");
+        syncVoice(keepVoiceOnRef.current);
+        setSyncedIsBotTyping(false);
+      }
+    }, settings.chatInput?.botDelay);
+  }, [
+    timeoutIdRef, settings.chatInput?.blockSpam, settings.chatInput?.botDelay, settings.chatInput?.disabled,
+    keepVoiceOnRef, syncedVoiceToggledOnRef, syncVoice, handleSendUserInput, getPrevPath, getCurrPath, goToPath,
+    injectMessage, simulateStreamMessage, streamMessage, removeMessage, endStreamMessage, toggleChatWindow,
+    showToast, dismissToast, flowRef, paramsInputRef, setSyncedTextAreaSensitiveMode, setSyncedIsBotTyping,
+    setSyncedTextAreaDisabled, setBlockAllowsAttachment, syncedPathsRef, setInputLength, inputRef,
+    setTextAreaValue, streamBotAnswerFromBackend
+  ]);
+
+  /**
+   * Handles submit
+   */
+  const handleSubmitText = useCallback(async (inputText?: string, sendInChat = true) => {
+    inputText = inputText ?? (inputRef.current?.value as string);
+
+    if (settings.event?.rcbUserSubmitText) {
+      const event = await dispatchRcbEvent(RcbEvent.USER_SUBMIT_TEXT, { inputText, sendInChat });
+      if (event.defaultPrevented) return;
+    }
+
+    const currPath = getCurrPath();
+    if (!currPath) return;
+    handleActionInput(inputText, sendInChat);
+  }, [dispatchRcbEvent, getCurrPath, handleActionInput, inputRef, settings.event?.rcbUserSubmitText]);
+
+  return { handleSubmitText };
 };

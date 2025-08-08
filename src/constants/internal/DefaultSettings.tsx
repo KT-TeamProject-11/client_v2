@@ -34,7 +34,7 @@ export const DefaultSettings: Settings = {
 	},
 	tooltip: {
 		mode: "CLOSE",
-		text: "안녕하세요! 궁금한거 있어요? 😊",
+		text: "클릭해서 채팅을 시작하세요",
 	},
 	chatButton: {
 		icon: CenterImage,
@@ -83,7 +83,7 @@ export const DefaultSettings: Settings = {
 	chatInput: {
 		disabled: false,
 		allowNewline: false,
-		enabledPlaceholderText: "Type your message...",
+		enabledPlaceholderText: "질문을 입력하세요",
 		disabledPlaceholderText: "",
 		showCharacterCount: false,
 		characterLimit: -1,

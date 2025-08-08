@@ -36,17 +36,19 @@ const ChatBotTooltip = () => {
 	// tooltip offset
 	const [tooltipOffset, setTooltipOffset] = useState<number>(0);
 
-	// checks if tooltip should be shown
+	// determines when to show tooltip
 	useEffect(() => {
 		const mode = settings.tooltip?.mode;
+
 		if (mode === "ALWAYS") {
 			if (isDesktop) {
 				let offset;
 				if (isChatWindowOpen) {
-					offset = (chatBodyRef.current?.offsetWidth ?? 375) -
-						(typeof styles.chatButtonStyle?.width === 'number'
+					offset =
+						(chatBodyRef.current?.offsetWidth ?? 375) -
+						(typeof styles.chatButtonStyle?.width === "number"
 							? styles.chatButtonStyle.width
-							: 75)
+							: 75);
 				} else {
 					offset = 0;
 				}
@@ -71,8 +73,20 @@ const ChatBotTooltip = () => {
 		} else if (mode === "CLOSE") {
 			setShowTooltip(!isChatWindowOpen);
 		}
-
 	}, [isChatWindowOpen]);
+
+	// 🕐 Tooltip auto-hide after 1 minute (if not ALWAYS)
+	useEffect(() => {
+		let timeout: ReturnType<typeof setTimeout>;
+
+		if (showTooltip && settings.tooltip?.mode !== "ALWAYS") {
+			timeout = setTimeout(() => {
+				setShowTooltip(false);
+			}, 5000); // 5초
+		}
+
+		return () => clearTimeout(timeout);
+	}, [showTooltip, settings.tooltip?.mode]);
 
 	// styles for tooltip
 	const tooltipStyle: React.CSSProperties = {
@@ -88,11 +102,11 @@ const ChatBotTooltip = () => {
 	const tooltipTailStyle: React.CSSProperties = {
 		borderColor: `transparent transparent transparent ${tooltipStyle.backgroundColor}`
 	};
-	
+
 	return (
 		<>
-			{!settings.general?.embedded &&
-				<div 
+			{!settings.general?.embedded && (
+				<div
 					data-testid="chat-tooltip"
 					style={tooltipStyle}
 					className={`rcb-chat-tooltip ${showTooltip ? "rcb-tooltip-show" : "rcb-tooltip-hide"}`}
@@ -101,7 +115,7 @@ const ChatBotTooltip = () => {
 					<span>{settings.tooltip?.text}</span>
 					<span className="rcb-chat-tooltip-tail" style={tooltipTailStyle}></span>
 				</div>
-			}
+			)}
 		</>
 	);
 };

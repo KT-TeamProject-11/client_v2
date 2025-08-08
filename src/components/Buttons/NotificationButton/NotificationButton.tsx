@@ -61,22 +61,23 @@ const NotificationButton = () => {
 		)
 	}
 
-	return (
-		<div
-			aria-label={settings.ariaLabel?.notificationButton ?? "toggle notifications"}
-			role="button" 
-			onMouseDown={async (event: MouseEvent) => {
-				event.preventDefault();
-				await toggleNotifications();
-			}}
-			style={notificationsToggledOn
-				? {...styles.notificationButtonStyle}
-				: {...styles.notificationButtonStyle, ...styles.notificationButtonDisabledStyle}
-			}
-		>
-			{renderButton()}
-		</div>
-	);
+	return <></>
+	// (
+	// 	<div
+	// 		aria-label={settings.ariaLabel?.notificationButton ?? "toggle notifications"}
+	// 		role="button" 
+	// 		onMouseDown={async (event: MouseEvent) => {
+	// 			event.preventDefault();
+	// 			await toggleNotifications();
+	// 		}}
+	// 		style={notificationsToggledOn
+	// 			? {...styles.notificationButtonStyle}
+	// 			: {...styles.notificationButtonStyle, ...styles.notificationButtonDisabledStyle}
+	// 		}
+	// 	>
+	// 		{renderButton()}
+	// 	</div>
+	// );
 };
 
 export default NotificationButton;

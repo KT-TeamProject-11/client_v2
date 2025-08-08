@@ -1,10 +1,10 @@
 import {
-	createContext,
-	MutableRefObject,
-	useContext,
-	useEffect,
-	useRef,
-	useState
+  createContext,
+  MutableRefObject,
+  useContext,
+  useEffect,
+  useRef,
+  useState
 } from "react";
 
 import { parseConfig } from "../utils/configParser";
@@ -20,91 +20,88 @@ import { Settings } from "../types/Settings";
 import { Styles } from "../types/Styles";
 import { Theme } from "../types/Theme";
 
-// ✅ 추가된 타입
+// 화면 상태 타입
 type ViewMode = "welcome" | "chat";
 
 type ChatBotProviderContextType = {
-	loadConfig: (
-		id: string,
-		flow: Flow,
-		settings: Settings,
-		styles: Styles,
-		themes: Theme | Theme[] | undefined,
-		styleRootRef: MutableRefObject<HTMLStyleElement | null>
-	) => Promise<void>;
-	viewMode: ViewMode;
-	setViewMode: (mode: ViewMode) => void;
+  loadConfig: (
+    id: string,
+    flow: Flow,
+    settings: Settings,
+    styles: Styles,
+    themes: Theme | Theme[] | undefined,
+    styleRootRef: MutableRefObject<HTMLStyleElement | null>
+  ) => Promise<void>;
+  viewMode: ViewMode;
+  setViewMode: (mode: ViewMode) => void;
 };
 
-// ✅ context 정의 및 hook
 const ChatBotContext = createContext<ChatBotProviderContextType | undefined>(undefined);
+
 export const useChatBotContext = () => {
-	const context = useContext(ChatBotContext);
-	if (!context) {
-		throw new Error("useChatBotContext must be used within ChatBotProvider");
-	}
-	return context;
+  const context = useContext(ChatBotContext);
+  if (!context) {
+    throw new Error("useChatBotContext must be used within ChatBotProvider");
+  }
+  return context;
 };
 
 const ChatBotProvider = ({ children }: { children: React.ReactNode }) => {
-	// 기존
-	const botIdRef = useRef<string>("");
-	const botFlowRef = useRef<Flow>({});
-	const [botSettings, setBotSettings] = useState<Settings>({});
-	const [botStyles, setBotStyles] = useState<Styles>({});
-	const [isDomLoaded, setIsDomLoaded] = useState<boolean>(false);
+  const botIdRef = useRef<string>("");
+  const botFlowRef = useRef<Flow>({});
+  const [botSettings, setBotSettings] = useState<Settings>({});
+  const [botStyles, setBotStyles] = useState<Styles>({});
+  const [isDomLoaded, setIsDomLoaded] = useState<boolean>(false);
 
-	// ✅ 추가: 화면 상태(welcome/chat)
-	const [viewMode, setViewMode] = useState<ViewMode>("welcome");
+  const [viewMode, setViewMode] = useState<ViewMode>("welcome");
 
-	useEffect(() => {
-		setIsDomLoaded(true);
-	}, []);
+  useEffect(() => {
+    setIsDomLoaded(true);
+  }, []);
 
-	// 기존 설정 로딩
-	const loadConfig = async (
-		botId: string,
-		flow: Flow,
-		settings: Settings,
-		styles: Styles,
-		themes: Theme | Theme[] | undefined,
-		styleRootRef: MutableRefObject<HTMLStyleElement | null>
-	) => {
-		botIdRef.current = botId;
-		botFlowRef.current = flow;
-		const combinedConfig = await parseConfig(botId, settings, styles, themes);
+  const loadConfig = async (
+    botId: string,
+    flow: Flow,
+    settings: Settings,
+    styles: Styles,
+    themes: Theme | Theme[] | undefined,
+    styleRootRef: MutableRefObject<HTMLStyleElement | null>
+  ) => {
+    botIdRef.current = botId;
+    botFlowRef.current = flow;
+    const combinedConfig = await parseConfig(botId, settings, styles, themes);
 
-		if (styleRootRef.current) {
-			styleRootRef.current.textContent = combinedConfig.cssStylesText;
-		}
+    if (styleRootRef.current) {
+      styleRootRef.current.textContent = combinedConfig.cssStylesText;
+    }
 
-		setBotSettings(combinedConfig.settings);
-		setBotStyles(combinedConfig.inlineStyles);
-	};
+    setBotSettings(combinedConfig.settings);
+    setBotStyles(combinedConfig.inlineStyles);
+  };
 
-	if (!isDomLoaded) return null;
+  if (!isDomLoaded) return null;
 
-	return (
-		<div style={{ fontFamily: botSettings.general?.fontFamily }}>
-			<ChatBotContext.Provider value={{ loadConfig, viewMode, setViewMode }}>
-				<SettingsProvider settings={botSettings} setSettings={setBotSettings}>
-					<StylesProvider styles={botStyles} setStyles={setBotStyles}>
-						<ToastsProvider>
-							<BotRefsProvider botIdRef={botIdRef} flowRef={botFlowRef}>
-								<PathsProvider>
-									<BotStatesProvider settings={botSettings}>
-										<MessagesProvider>
-											{children}
-										</MessagesProvider>
-									</BotStatesProvider>
-								</PathsProvider>
-							</BotRefsProvider>
-						</ToastsProvider>
-					</StylesProvider>
-				</SettingsProvider>
-			</ChatBotContext.Provider>
-		</div>
-	);
+  return (
+    <div style={{ fontFamily: botSettings.general?.fontFamily }}>
+      <ChatBotContext.Provider value={{ loadConfig, viewMode, setViewMode }}>
+        <SettingsProvider settings={botSettings} setSettings={setBotSettings}>
+          <StylesProvider styles={botStyles} setStyles={setBotStyles}>
+            <ToastsProvider>
+              <BotRefsProvider botIdRef={botIdRef} flowRef={botFlowRef}>
+                <PathsProvider>
+                  <BotStatesProvider settings={botSettings}>
+                    <MessagesProvider>
+                      {children}
+                    </MessagesProvider>
+                  </BotStatesProvider>
+                </PathsProvider>
+              </BotRefsProvider>
+            </ToastsProvider>
+          </StylesProvider>
+        </SettingsProvider>
+      </ChatBotContext.Provider>
+    </div>
+  );
 };
 
 export { ChatBotProvider };

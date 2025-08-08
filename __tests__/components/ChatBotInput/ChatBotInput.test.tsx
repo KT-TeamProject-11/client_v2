@@ -55,7 +55,7 @@ describe("ChatBotInput", () => {
 					flowStartTrigger: "ON_CHATBOT_INTERACT",
 				},
 				chatInput: {
-					enabledPlaceholderText: "Type your message...",
+					enabledPlaceholderText: "질문을 입력하세요.",
 					disabledPlaceholderText: "Input disabled",
 					allowNewline: false,
 					showCharacterCount: true,
@@ -82,7 +82,7 @@ describe("ChatBotInput", () => {
 
 	it("renders the input field and buttons correctly", () => {
 		render(<ChatBotInput {...defaultProps} />);
-		expect(screen.getByPlaceholderText("Type your message...")).toBeInTheDocument();
+		expect(screen.getByPlaceholderText("질문을 입력하세요.")).toBeInTheDocument();
 		expect(screen.getByText("Button 1")).toBeInTheDocument();
 		expect(screen.getByText("Button 2")).toBeInTheDocument();
 		expect(screen.getByText("0/100")).toBeInTheDocument();
@@ -90,14 +90,14 @@ describe("ChatBotInput", () => {
 
 	it("handles input changes correctly", () => {
 		render(<ChatBotInput {...defaultProps} />);
-		const input = screen.getByPlaceholderText("Type your message...");
+		const input = screen.getByPlaceholderText("질문을 입력하세요.");
 		fireEvent.change(input, { target: { value: "Hello" } });
 		expect(setTextAreaValueMock).toHaveBeenCalledWith("Hello");
 	});
   
 	it("submits input on Enter key press", () => {
 		render(<ChatBotInput {...defaultProps} />);
-		const input = screen.getByPlaceholderText("Type your message...");
+		const input = screen.getByPlaceholderText("질문을 입력하세요.");
 		fireEvent.keyDown(input, { key: "Enter", code: "Enter", keyCode: 13 });
 		expect(handleSubmitTextMock).toHaveBeenCalledTimes(1);
 	});

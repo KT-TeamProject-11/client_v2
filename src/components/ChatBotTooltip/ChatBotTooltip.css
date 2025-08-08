@@ -8,8 +8,10 @@
 	white-space: nowrap;
 	cursor: pointer;
 	font-size: 20px;
-	transition: transform 0.3s ease;
+	transition: opacity 0.5s ease-in-out, transform 0.3s ease;
 	z-index: 9999;
+	opacity: 1;
+	visibility: visible;
 }
 
 .rcb-chat-tooltip-tail {
@@ -25,11 +27,37 @@
 .rcb-chat-tooltip.rcb-tooltip-hide {
 	opacity: 0;
 	visibility: hidden;
-	animation: rcb-animation-tooltip-out 0.5s ease-in-out;
+	animation: rcb-animation-tooltip-out 0.5s ease-in-out forwards;
+	pointer-events: none;
 }
 
 .rcb-chat-tooltip.rcb-tooltip-show {
 	opacity: 1;
 	visibility: visible;
 	animation: rcb-animation-tooltip-in 0.5s ease-in-out;
+	pointer-events: auto;
+}
+
+/* Fade-in 애니메이션 */
+@keyframes rcb-animation-tooltip-in {
+	from {
+		opacity: 0;
+		transform: translateY(5px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Fade-out 애니메이션 */
+@keyframes rcb-animation-tooltip-out {
+	from {
+		opacity: 1;
+		transform: translateY(0);
+	}
+	to {
+		opacity: 0;
+		transform: translateY(5px);
+	}
 }
