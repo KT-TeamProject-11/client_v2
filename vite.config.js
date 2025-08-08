@@ -49,7 +49,7 @@ export default ({mode}) => {
       // eslint()
     ],
     server: {
-      port: 3000,
+      port: 8666,
       host: true,
     },
   });
