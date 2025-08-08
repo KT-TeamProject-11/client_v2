@@ -5,24 +5,12 @@ import ChatBot from "./components/ChatBot";
 import { Flow } from "./types/Flow";
 import { Params } from "./types/Params";
 import { ChatBotProvider } from "./context/ChatBotContext";
-import WelcomeScreen from "./components/WelcomeScreen";
-import "./App.css";
+import "./app.css";
 
 function App() {
 	const [name, setName] = useState("");
-	const [viewMode, setViewMode] = useState<"welcome" | "chat">("welcome");
 	const [initTopic, setInitTopic] = useState<string | null>(null);
 	const [initialUserInput, setInitialUserInput] = useState<string | null>(null);
-
-	const handleWelcomeSelect = (topic: string) => {
-		setInitTopic(topic);
-		setViewMode("chat");
-	};
-
-	const handleFirstUserInput = (input: string) => {
-		setInitialUserInput(input);
-		setViewMode("chat");
-	};
 
 	const flow: Flow = {
 		start: {
@@ -126,36 +114,29 @@ function App() {
 		<ChatBotProvider>
 			<div className="App">
 				<header className="App-header">
-					{viewMode === "chat" ? (
-						<ChatBot
-							id="chatbot-id"
-							flow={flow}
-							settings={{
-								header: {
-									showAvatar: true,
-									avatar: "../assets/hodu.png",
-									title: "호둥이 챗봇",
-								},
-								general: {
-									primaryColor: "rgb(250,190,0)",
-								},
-								userBubble: { showAvatar: true },
-								botBubble: {
-									showAvatar: true,
-									avatar: "../assets/hodu.png",
-								},
-								audio: { disabled: false },
-								voice: { disabled: false },
-								sensitiveInput: { asterisksCount: 6 },
-								chatInput: { botDelay: 1000 },
-							}}
-						/>
-					) : (
-						<WelcomeScreen
-							onSelect={handleWelcomeSelect}
-							onUserMessage={handleFirstUserInput}
-						/>
-					)}
+					<ChatBot
+						id="chatbot-id"
+						flow={flow}
+						settings={{
+							header: {
+								showAvatar: true,
+								avatar: "../assets/hodu.png",
+								title: "호둥이 챗봇",
+							},
+							general: {
+								primaryColor: "rgb(250,190,0)",
+							},
+							userBubble: { showAvatar: true },
+							botBubble: {
+								showAvatar: true,
+								avatar: "../assets/hodu.png",
+							},
+							audio: { disabled: false },
+							voice: { disabled: false },
+							sensitiveInput: { asterisksCount: 6 },
+							chatInput: { botDelay: 1000 },
+						}}
+					/>
 				</header>
 			</div>
 		</ChatBotProvider>

@@ -46,7 +46,7 @@ export default ({mode}) => {
       react({
         include: "**/*.{jsx,tsx}",
       }),
-      eslint()
+      // eslint()
     ],
     server: {
       port: 3000,
