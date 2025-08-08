@@ -34,7 +34,7 @@ export const DefaultSettings: Settings = {
 	},
 	tooltip: {
 		mode: "CLOSE",
-		text: "Talk to me! 😊",
+		text: "안녕하세요! 궁금한거 있어요? 😊",
 	},
 	chatButton: {
 		icon: CenterImage,

@@ -5,7 +5,7 @@ import { useSubmitInputInternal } from "../../../hooks/internal/useSubmitInputIn
 import { useSettingsContext } from "../../../context/SettingsContext";
 import { useStylesContext } from "../../../context/StylesContext";
 import { usePathsContext } from "../../../context/PathsContext";
-import { Flow } from "../../../types/Flow";
+import {Flow}  from "../../../types/Flow";
 
 import "./BotOptions.css";
 

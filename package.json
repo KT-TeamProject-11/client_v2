@@ -31,7 +31,8 @@
     "build": "tsc && vite build && node ./scripts/post-build.js",
     "prepublishOnly": "tsc && vite build && node ./scripts/post-build.js",
     "prepack": "tsc && vite build && node ./scripts/post-build.js",
-    "start": "vite serve",
+    "dev": "vite",
+    "start": "vite",
     "prepare": "husky install",
     "unit:test": "jest __tests__/",
     "unit:test:single": "jest --findRelatedTests",
@@ -92,6 +93,7 @@
     ]
   },
   "dependencies": {
-    "lucide-react": "^0.536.0"
+    "lucide-react": "^0.536.0",
+    "react-chatbotify": "^2.2.0"
   }
 }

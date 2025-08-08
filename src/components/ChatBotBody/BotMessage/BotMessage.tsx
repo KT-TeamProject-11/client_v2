@@ -2,7 +2,6 @@ import { CSSProperties } from "react";
 import { useSettingsContext } from "../../../context/SettingsContext";
 import { useStylesContext } from "../../../context/StylesContext";
 import { Message } from "../../../types/Message";
-
 import "./BotMessage.css";
 
 /**
@@ -53,6 +52,17 @@ const BotMessage = ({
 		: ""
 	}`;
 
+	// 자동 입력 및 전송 함수
+	const handleOptionClick = (value: string) => {
+		const input = document.querySelector<HTMLInputElement>(".rcb-input-area input");
+		if (input) {
+			input.value = value;
+			input.dispatchEvent(new Event("input", { bubbles: true }));
+		}
+		const sendButton = document.querySelector<HTMLButtonElement>(".rcb-send-icon");
+		sendButton?.click();
+	};
+
 	return (
 		<div className="rcb-bot-message-container">
 			{showAvatar && (
@@ -61,14 +71,27 @@ const BotMessage = ({
 					className="rcb-message-bot-avatar"
 				/>
 			)}
-			{ isStringContent ? (
+			{isStringContent ? (
 				<div style={botBubbleStyle} className={`${offsetStyle} ${botBubbleEntryStyle}`}>
 					{finalContent}
+
+					{/* ✅ 옵션 버튼이 있으면 렌더링 */}
+					{message.options && (
+						<div className="rcb-option-buttons">
+							{message.options.map((option, index) => (
+								<button
+									key={index}
+									className="rcb-option-button"
+									onClick={() => handleOptionClick(option.value)}
+								>
+									{option.label}
+								</button>
+							))}
+						</div>
+					)}
 				</div>
 			) : (
-				<>
-					{finalContent}
-				</>
+				<>{finalContent}</>
 			)}
 		</div>
 	);
