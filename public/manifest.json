@@ -1,0 +1,9 @@
+{
+  "name": "React Chatbot",
+  "short_name": "Chatbot",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2E5A9C",
+  "description": "React 기반 챗봇 애플리케이션입니다."
+}
