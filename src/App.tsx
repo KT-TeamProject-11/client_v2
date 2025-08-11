@@ -86,8 +86,8 @@ export default function App() {
                 title: "호둥이 챗봇",
               },
               general: {
-                primaryColor: "rgb(250,190,0)",
-                secondaryColor: "#58a7a7",
+                primaryColor: "rgba(155, 195, 187, 1)",
+                secondaryColor: "#c4e6a3ff",
                 showHeader: true,
                 showInputRow: true,
                 flowStartTrigger: "ON_LOAD",
