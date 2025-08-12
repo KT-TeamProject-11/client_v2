@@ -98,7 +98,7 @@ export default function App() {
                 avatar: "../assets/hodu.png",
               },
               audio: { disabled: false },
-              voice: { disabled: false },
+              voice: { disabled: false }, // ✅ voice 디자인 그대로 사용
               sensitiveInput: { asterisksCount: 6 },
               chatInput: { botDelay: 0 },
             }}
