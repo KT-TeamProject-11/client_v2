@@ -6,19 +6,20 @@ import { useSettingsContext } from "../../../context/SettingsContext";
 import { useStylesContext } from "../../../context/StylesContext";
 
 import "./SendButton.css";
-
-/**
+/*
  * Sends current user input to the chat bot.
  */
 const SendButton = () => {
 	// handles settings
 	const { settings } = useSettingsContext();
 
+	
+	
 	// handles styles
 	const { styles } = useStylesContext();
 
 	// handles bot states
-	const { textAreaDisabled } = useBotStatesContext();
+	const { textAreaDisabled, setHasFlowStarted } = useBotStatesContext();
 
 	// tracks if send button is hovered
 	const [isHovered, setIsHovered] = useState<boolean>(false);
@@ -125,6 +126,7 @@ const SendButton = () => {
 				if (textAreaDisabled) {
 					return;
 				}
+				setHasFlowStarted(true);
 				await handleSubmitText();
 			}}
 			style={textAreaDisabled

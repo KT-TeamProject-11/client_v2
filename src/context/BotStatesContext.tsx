@@ -1,4 +1,4 @@
-import { useContext, createContext, Dispatch, SetStateAction, useState, MutableRefObject } from "react";
+import { useContext, createContext, Dispatch, SetStateAction, useState, MutableRefObject, useRef, useEffect } from "react";
 
 import { useSyncedRefState } from "../hooks/internal/useSyncedRefState";
 import { Settings } from "../types/Settings";
@@ -66,7 +66,10 @@ export type BotStatesContextType = {
 	viewportWidth: number;
 	setViewportWidth: Dispatch<SetStateAction<number>>;
 
+	// ✅ 앱 최초 진입 시각 (부트 이후 메시지만 배지 카운트)
+	bootTimeRef: React.MutableRefObject<number>;
 };
+
 const BotStatesContext = createContext<BotStatesContextType>({} as BotStatesContextType);
 const useBotStatesContext = () => useContext(BotStatesContext);
 
@@ -116,6 +119,13 @@ const BotStatesProvider = ({
 		?? window.innerHeight);
 	const [viewportWidth, setViewportWidth] = useState<number>(window.visualViewport?.width as number
 		?? window.innerWidth);
+		useEffect(() => {
+  setUnreadCount(0);        // ✅ 앱 처음 켰을 때 무조건 0부터 시작
+  // setHasFlowStarted(false); // 기본값이 false면 생략
+}, []);
+
+	// ✅ 앱 최초 진입 시각 기록
+	const bootTimeRef = useRef<number>(Date.now());
 
 	return (
 		<BotStatesContext.Provider value={{
@@ -160,7 +170,8 @@ const BotStatesProvider = ({
 			viewportHeight,
 			setViewportHeight,
 			viewportWidth,
-			setViewportWidth
+			setViewportWidth,
+			bootTimeRef
 		}}>
 			{children}
 		</BotStatesContext.Provider>
