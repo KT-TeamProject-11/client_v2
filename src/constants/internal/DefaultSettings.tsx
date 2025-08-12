@@ -20,8 +20,8 @@ import notificationSound from "../../assets/notification_sound.wav";
 // default settings provided to the bot
 export const DefaultSettings: Settings = {
 	general: {
-		primaryColor: "#42b0c5",
-		secondaryColor: "#62acaeff",
+		primaryColor: "#ef1616ff",
+		secondaryColor: "rgba(196, 230, 163, 1)",
 		fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', " +
 			"'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', " +
 			"sans-serif",
