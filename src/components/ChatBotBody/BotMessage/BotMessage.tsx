@@ -1,8 +1,9 @@
-import { CSSProperties, useEffect, useRef } from "react"; // ⬅️ useEffect/useRef 추가
+import { CSSProperties, useEffect, useRef } from "react";
 import { useSettingsContext } from "../../../context/SettingsContext";
 import { useStylesContext } from "../../../context/StylesContext";
 import { Message } from "../../../types/Message";
 import "./BotMessage.css";
+import DOMPurify from "dompurify";
 
 const BotMessage = ({
   message,
@@ -14,24 +15,42 @@ const BotMessage = ({
   const { settings } = useSettingsContext();
   const { styles } = useStylesContext();
 
-  // 문자열인지 체크
   const isStringContent = typeof message.content === "string";
   const baseContent: React.ReactNode = message.content;
 
-  // wrapper 유무 (아래에서 HTML을 이 wrapper 안에 넣어줄 거라서 변수만 유지)
-  const ContentWrapper = message.contentWrapper ?? (({ children }: { children: React.ReactNode }) => <>{children}</>);
+  const ContentWrapper =
+    message.contentWrapper ?? (({ children }: { children: React.ReactNode }) => <>{children}</>);
 
-  // 링크 보강용 ref
   const htmlRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // 새 탭 링크 보안 속성 부여
+    // 링크에 target/rel이 없더라도 보강 (백엔드가 해주지만 이중 안전)
     const root = htmlRef.current;
     if (!root) return;
-    root.querySelectorAll('a[target="_blank"]').forEach((a) => {
+    root.querySelectorAll<HTMLAnchorElement>("a").forEach((a) => {
+      a.setAttribute("target", "_blank");
       a.setAttribute("rel", "noopener noreferrer");
     });
   }, [message?.content]);
+
+  // ← 여기가 포인트!
+  // 컨테이너에서 캡처 단계로 클릭을 가로채서 항상 새 탭으로 연다.
+  const handleLinkOpenInNewTabCapture = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+    const a = target.closest("a") as HTMLAnchorElement | null;
+    if (!a || !a.href) return;
+
+    // meta/ctrl 클릭 등 브라우저 기본 단축키는 존중
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button === 1) {
+      return; // 기본 동작 유지(이미 새 탭/새 창)
+    }
+
+    // 기본 이동 막고 수동으로 새 탭 열기
+    e.preventDefault();
+    e.stopPropagation();
+    window.open(a.href, "_blank", "noopener,noreferrer");
+  };
 
   const botBubbleStyle: CSSProperties = {
     backgroundColor: settings.general?.secondaryColor,
@@ -67,16 +86,17 @@ const BotMessage = ({
 
       {isStringContent ? (
         <div style={botBubbleStyle} className={`${offsetStyle} ${botBubbleEntryStyle}`}>
-          {/* ✅ 문자열이면 HTML로 렌더 */}
           <ContentWrapper>
             <div
               ref={htmlRef}
               className="message-content"
-              dangerouslySetInnerHTML={{ __html: String(message.content ?? "") }}
+              onClickCapture={handleLinkOpenInNewTabCapture}  // ★ 추가
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(String(message.content ?? "")),
+              }}
             />
           </ContentWrapper>
 
-          {/* 옵션 버튼 */}
           {message.options && (
             <div className="rcb-option-buttons">
               {message.options.map((option, index) => (
@@ -92,7 +112,6 @@ const BotMessage = ({
           )}
         </div>
       ) : (
-        // 문자열이 아닌 React 노드 콘텐츠는 기존 방식 유지
         <>{baseContent}</>
       )}
     </div>

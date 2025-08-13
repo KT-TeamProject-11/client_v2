@@ -62,3 +62,8 @@
 .rcb-option-button:hover {
 	background-color: #f5f5f5;
 }
+
+.message-content a {
+  word-break: break-word;   /* 긴 링크도 줄바꿈 */
+}
+
