@@ -7,7 +7,7 @@ export type Message = {
   timestamp: string;
   tags?: Array<string>;
   contentWrapper?: React.ComponentType<{ children: React.ReactNode }>;
-  // 👇 추가
+  // 밑에 추가
   isHistory?: boolean; // 과거 로드된 메시지
   isRead?: boolean;    // 읽음 여부
 }

@@ -9,7 +9,7 @@ import "./ChatBotButton.css";
  * Toggles opening and closing of the chat window when general.embedded is false.
  */
 const ChatBotButton = () => {
-  // ✅ 디버그 토글: true면 배지를 무조건 보여줌(표시 여부 문제 확인용)
+  
   const FORCE_BADGE_DEBUG = true;
 
   // handles settings
