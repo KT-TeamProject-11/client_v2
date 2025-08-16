@@ -12,8 +12,8 @@ import { useBotStatesContext } from "../../../context/BotStatesContext";
 import "./VoiceButton.css";
 
 // ✅ PNG만 사용
-import idlePng from "../../../assets/voice_icon.png";              // 처음 화면(검은 마이크)
-import disabledPng from "../../../assets/voice_icon_disabled.png"; // 누르면(녹음 중) 이 이미지
+import idlePng from "../../../assets/voice_icon_disabled.png";              // 처음 화면(검은 마이크)
+import disabledPng from "../../../assets/voice_icon.png"; // 누르면(녹음 중) 이 이미지
 
 declare global {
   interface Window {
