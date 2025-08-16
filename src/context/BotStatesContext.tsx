@@ -121,7 +121,6 @@ const BotStatesProvider = ({
 		?? window.innerWidth);
 		useEffect(() => {
   setUnreadCount(0);        // ✅ 앱 처음 켰을 때 무조건 0부터 시작
-  // setHasFlowStarted(false); // 기본값이 false면 생략
 }, []);
 
 	// ✅ 앱 최초 진입 시각 기록

@@ -68,7 +68,7 @@ const AudioButton = () => {
       tabIndex={0}                    // ← 키보드 포커스 가능
       onMouseDown={async (event: MouseEvent) => {
         event.preventDefault();
-        if (audioToggledOn) cancelTTS(); // 🔴 토글 OFF 직전 즉시 중단
+        if (audioToggledOn) cancelTTS(); //  토글 OFF 직전 즉시 중단
         await toggleAudio();
       }}
       onKeyDown={async (e) => {
