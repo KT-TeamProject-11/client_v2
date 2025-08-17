@@ -1,6 +1,4 @@
-<<<<<<< HEAD
 # client_v2
-=======
 <p align="center">
   <img width="200px" src="https://raw.githubusercontent.com/react-chatbotify/react-chatbotify/main/assets/logo.png" />
   <h1 align="center">React ChatBotify</h1>
