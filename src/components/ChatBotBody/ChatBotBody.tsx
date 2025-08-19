@@ -17,73 +17,52 @@ import "./ChatBotBody.css";
  * Contains chat messages between the user and bot.
  */
 const ChatBotBody = () => {
-	// handles settings
-	const { settings } = useSettingsContext();
+  const { settings } = useSettingsContext();
+  const { styles } = useStylesContext();
+  const { messages } = useMessagesContext();
+  const { scrollToBottom } = useChatWindowInternal();
+  const { isBotTyping, syncedIsScrollingRef } = useBotStatesContext();
+  const { chatBodyRef } = useBotRefsContext();
 
-	// handles styles
-	const { styles } = useStylesContext();
+  const bodyStyle: CSSProperties = {
+    ...styles?.bodyStyle,
+    scrollbarWidth: settings.chatWindow?.showScrollbar ? "auto" : "none",
+  };
 
-	// handles messages
-	const { messages } = useMessagesContext();
+  useEffect(() => {
+    if (!syncedIsScrollingRef.current) {
+      scrollToBottom();
+    }
+  }, [chatBodyRef.current?.scrollHeight]); // eslint-disable-line
 
-	// handles chat window
-	const { scrollToBottom } = useChatWindowInternal();
+  const isFirstInSeries = (index: number): boolean => {
+    if (index === 0) return true;
+    return messages[index].sender !== messages[index - 1].sender;
+  };
 
-	// handles bot states
-	const {
-		isBotTyping,
-		syncedIsScrollingRef,
-	} = useBotStatesContext();
+  return (
+    <div
+      style={bodyStyle}
+      className="rcb-chat-body-container"
+      ref={chatBodyRef as React.LegacyRef<HTMLDivElement>}
+    >
+      {messages.map((message, index) => {
+        const isNewSender = isFirstInSeries(index);
 
-	// handles bot refs
-	const { chatBodyRef } = useBotRefsContext();
+        if (message.sender.toUpperCase() === "USER") {
+          return <UserMessage key={index} message={message} isNewSender={isNewSender} />;
+        }
 
-	// styles for chat body
-	const bodyStyle: CSSProperties = {
-		...styles?.bodyStyle,
-		scrollbarWidth: settings.chatWindow?.showScrollbar ? "auto" : "none",
-	};
+        if (message.sender.toUpperCase() === "BOT") {
+          return <BotMessage key={index} message={message} isNewSender={isNewSender} />;
+        }
 
-	// shifts scroll position when scroll height changes and determines if a user is scrolling in chat window.
-	useEffect(() => {
-		if (!syncedIsScrollingRef.current) {
-			scrollToBottom();
-		}
-	}, [chatBodyRef.current?.scrollHeight]);
-
-	/**
-	 * Determines if the message is the first in a consecutive series from the same sender.
-	 */
-	const isFirstInSeries = (index: number): boolean => {
-		if (index === 0) {
-			return true;
-		}
-		return messages[index].sender !== messages[index - 1].sender;
-	};
-
-	return (
-		<div
-			style={bodyStyle}
-			className="rcb-chat-body-container"
-			ref={chatBodyRef as React.LegacyRef<HTMLDivElement>}
-		>
-			{messages.map((message, index) => {
-				const isNewSender = isFirstInSeries(index);
-
-				if (message.sender.toUpperCase() === "USER") {
-					return <UserMessage key={index} message={message} isNewSender={isNewSender} />;
-				}
-
-				if (message.sender.toUpperCase() === "BOT") {
-					return <BotMessage key={index} message={message} isNewSender={isNewSender} />;
-				}
-
-				return <div key={index}>{message.content}</div>;
-			})}
-			{isBotTyping && settings.chatWindow?.showTypingIndicator && <BotTypingIndicator />}
-			<ChatMessagePrompt />
-		</div>
-	);
+        return <div key={index}>{message.content}</div>;
+      })}
+      {isBotTyping && settings.chatWindow?.showTypingIndicator && <BotTypingIndicator />}
+      <ChatMessagePrompt />
+    </div>
+  );
 };
 
 export default ChatBotBody;

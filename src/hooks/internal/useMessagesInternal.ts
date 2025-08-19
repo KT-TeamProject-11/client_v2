@@ -1,6 +1,5 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
-import { saveChatHistory } from "../../services/ChatHistoryService";
 import { createMessage } from "../../utils/messageBuilder";
 import { useSettingsContext } from "../../context/SettingsContext";
 import { useMessagesContext } from "../../context/MessagesContext";
@@ -13,408 +12,383 @@ import { useChatWindowInternal } from "./useChatWindowInternal";
 import { Message } from "../../types/Message";
 import { RcbEvent } from "../../constants/RcbEvent";
 
-/**
- * Internal custom hook for managing sending of messages.
- */
 export const useMessagesInternal = () => {
-	// handles settings
-	const { settings } = useSettingsContext();
+  const { settings } = useSettingsContext();
+  const { messages, setSyncedMessages, syncedMessagesRef } = useMessagesContext();
 
-	// handles messages
-	const { messages, setSyncedMessages, syncedMessagesRef } = useMessagesContext();
+  const {
+    setSyncedIsBotTyping,
+    setUnreadCount,
+    syncedIsScrollingRef,
+    syncedIsChatWindowOpenRef,
+  } = useBotStatesContext();
 
-	// handles bot states
-	const {
-		setSyncedIsBotTyping,
-		setUnreadCount,
-		syncedIsScrollingRef,
-		syncedIsChatWindowOpenRef,
-	} = useBotStatesContext();
+  const { streamMessageMap, chatBodyRef, paramsInputRef } = useBotRefsContext();
+  const { scrollToBottom, getIsChatBotVisible } = useChatWindowInternal();
+  const { dispatchRcbEvent } = useDispatchRcbEventInternal();
+  const { speakAudio } = useAudioInternal();
+  const { playNotificationSound } = useNotificationInternal();
 
-	// handles bot refs
-	const { streamMessageMap, chatBodyRef, paramsInputRef } = useBotRefsContext();
 
-	// handles chat window
-	const { scrollToBottom, getIsChatBotVisible } = useChatWindowInternal();
 
-	// handles rcb events
-	const { dispatchRcbEvent } = useDispatchRcbEventInternal();
+  /**
+   * Handles post messages updates such as scrolling to bottom
+   * and playing notification sound.
+   */
+  const handlePostMessagesUpdate = useCallback(
+    (updatedMessages: Message[], isRepeatedStreamMessage = false) => {
+      let shouldNotify = true;
 
-	// handles audio
-	const { speakAudio } = useAudioInternal();
+      const lastMessage = updatedMessages[updatedMessages.length - 1];
+      if (!lastMessage) {
+        return;
+      }
 
-	// handles notification
-	const { playNotificationSound } = useNotificationInternal();
+      const sender = lastMessage.sender.toUpperCase();
+      if (sender === "USER") {
+        shouldNotify = false;
+      }
 
-	/**
-	 * Handles post messages updates such as saving chat history, scrolling to bottom
-	 * and playing notification sound.
-	 * 
-	 * Note: The isRepeatedStreamMessage variable is added specifically for repeated calls within streamMessage.
-	 * This happens because streamMessage is oftentimes called in a loop to update messages quickly. Special handling
-	 * needs to be done in this case to avoid issues such as users being unable to scroll away or notification sound
-	 * spams. For other message inputs (e.g. injectMessage), handlePostMessageUpdate is only called once.
-	 * 
-	 * @param updatedMessages messages after update
-	 * @param isRepeatedStreamMessage boolean indicating whether to update scroll position
-	 */
-	const handlePostMessagesUpdate = useCallback((updatedMessages: Message[], isRepeatedStreamMessage = false) => {
-		saveChatHistory(updatedMessages);
+      if (settings.general?.embedded && getIsChatBotVisible()) {
+        shouldNotify = false;
+      }
 
-		// tracks if notification should be played
-		let shouldNotify = true;
+      if (
+        (syncedIsChatWindowOpenRef.current && !syncedIsScrollingRef.current) ||
+        isRepeatedStreamMessage
+      ) {
+        shouldNotify = false;
+      }
 
-		// if messages are empty (i.e. fully cleared), nothing to do
-		const lastMessage = updatedMessages[updatedMessages.length - 1];
-		if (!lastMessage) {
-			return;
-		}
+      if (shouldNotify) {
+        playNotificationSound();
+      }
 
-		// if latest message is sent by user, no need to notify
-		const sender = lastMessage.sender.toUpperCase();
-		if (sender === "USER") {
-			shouldNotify = false;
-		}
+      if (
+        !isRepeatedStreamMessage &&
+        ((sender !== "USER" && settings.chatWindow?.autoJumpToBottom) ||
+          sender === "USER" ||
+          !syncedIsScrollingRef.current)
+      ) {
+        setTimeout(() => scrollToBottom(), 1);
+      }
+    },
+    [
+      settings,
+      chatBodyRef,
+      syncedIsChatWindowOpenRef,
+      syncedIsScrollingRef,
+      playNotificationSound,
+      scrollToBottom,
+      getIsChatBotVisible,
+    ]
+  );
 
-		// if chatbot is embedded and visible, no need to notify
-		if (settings.general?.embedded && getIsChatBotVisible()) {
-			shouldNotify = false;
-		}
+  const simulateStreamMessage = useCallback(
+    async (
+      content: string,
+      sender = "BOT",
+      simulateStreamChunker: ((content: string) => Array<string>) | null = null
+    ): Promise<Message | null> => {
+      if (typeof content !== "string") {
+        throw new Error("Content must be of type string to simulate stream.");
+      }
 
-		// if chatbot is open and user is not scrolling or is repeated stream message, no need to notify
-		if ((syncedIsChatWindowOpenRef.current && !syncedIsScrollingRef.current) || isRepeatedStreamMessage) {
-			shouldNotify = false;
-		}
+      sender = sender.toUpperCase();
+      let message = createMessage(content, sender);
 
-		if (shouldNotify) {
-			playNotificationSound();
-		}
+      if (settings.event?.rcbStartSimulateStreamMessage) {
+        const event = await dispatchRcbEvent(
+          RcbEvent.START_SIMULATE_STREAM_MESSAGE,
+          { message }
+        );
+        if (event.defaultPrevented) {
+          return null;
+        }
+        simulateStreamChunker =
+          event.data.simulateStreamChunker || simulateStreamChunker;
+        message = event.data.message;
+      }
 
-		if (
-			!isRepeatedStreamMessage &&
-			((sender !== "USER" && settings.chatWindow?.autoJumpToBottom) ||
-				sender === "USER" || !syncedIsScrollingRef.current)
-		) {
-			// defer update to next event loop, handles edge case where messages are sent too fast
-			// and the scrolling does not properly reach the bottom
-			setTimeout(() => scrollToBottom(), 1);
-		}
-	}, [settings, chatBodyRef, syncedIsChatWindowOpenRef, syncedIsScrollingRef,
-		playNotificationSound, scrollToBottom, getIsChatBotVisible]);
+      setSyncedIsBotTyping(false);
 
-	/**
-	 * Simulates the streaming of a message from the bot.
-	 * 
-	 * @param content message string to simulate stream for
-	 * @param sender sender of the message, defaults to bot
-	 * @param simulateStreamChunker function to override chunking of string for streaming simulation
-	 */
-	const simulateStreamMessage = useCallback(async (content: string,
-		sender = "BOT", simulateStreamChunker: ((content: string) => Array<string>) | null = null
-	): Promise<Message | null> => {
-		if (typeof content !== "string") {
-			throw new Error("Content must be of type string to simulate stream.");
-		}
+      let streamSpeed = 30;
+      if (sender === "BOT") {
+        streamSpeed = settings.botBubble?.streamSpeed as number;
+      } else {
+        streamSpeed = settings.userBubble?.streamSpeed as number;
+      }
 
-		// always convert to uppercase for checks
-		sender = sender.toUpperCase();
+      const placeholderMessage = { ...message, content: "" };
+      setSyncedMessages((prev) => [...prev, placeholderMessage]);
+      handlePostMessagesUpdate(syncedMessagesRef.current);
 
-		let message = createMessage(content, sender);
-		if (settings.event?.rcbStartSimulateStreamMessage) {
-			const event = await dispatchRcbEvent(
-				RcbEvent.START_SIMULATE_STREAM_MESSAGE,
-				{ message }
-			);
-			if (event.defaultPrevented) {
-				return null;
-			}
-			simulateStreamChunker = event.data.simulateStreamChunker || simulateStreamChunker;
-			message = event.data.message;
-		}
+      let streamMessage: string | string[] = message.content as string;
+      if (simulateStreamChunker) {
+        streamMessage = simulateStreamChunker(streamMessage as string);
+      }
+      let streamIndex = 0;
+      const endStreamIndex = streamMessage.length;
 
-		// stop bot typing when simulating stream
-		setSyncedIsBotTyping(false);
-		
+      if (
+        message.sender.toUpperCase() === "BOT" &&
+        (syncedIsChatWindowOpenRef.current || settings.general?.embedded)
+      ) {
+        if (typeof message.content === "string" && message.content.trim() !== "") {
+          speakAudio(message.content);
+        }
+      }
 
-		let streamSpeed = 30;
-		if (sender === "BOT") {
-			streamSpeed = settings.botBubble?.streamSpeed as number;
-		} else {
-			streamSpeed = settings.userBubble?.streamSpeed as number;
-		}
+      const simulateStreamDoneTask: Promise<void> = new Promise((resolve) => {
+        const intervalId = setInterval(() => {
+          if (streamIndex >= endStreamIndex) {
+            clearInterval(intervalId);
+            resolve();
+            return;
+          }
 
-		// set an initial empty message to be used for simulating streaming
-		const placeholderMessage = { ...message, content: "" };
-		setSyncedMessages(prev => [...prev, placeholderMessage]);
-		handlePostMessagesUpdate(syncedMessagesRef.current);
+          setSyncedMessages((prevMessages) => {
+            const updatedMessages = [...prevMessages];
+            for (let i = updatedMessages.length - 1; i >= 0; i--) {
+              if (updatedMessages[i].id === placeholderMessage.id) {
+                const character = (streamMessage as string[])[streamIndex];
+                if (character) {
+                  placeholderMessage.content += character;
+                  updatedMessages[i] = placeholderMessage;
+                }
+                streamIndex++;
+                break;
+              }
+            }
+            return updatedMessages;
+          });
+        }, streamSpeed);
+      });
 
-		// initialize default message to empty with stream index position 0
-		let streamMessage: string | string[] = message.content as string;
-		if (simulateStreamChunker) {
-			streamMessage = simulateStreamChunker(streamMessage as string);
-		}
-		let streamIndex = 0;
-		const endStreamIndex = streamMessage.length;
+      if (syncedIsScrollingRef.current || !syncedIsChatWindowOpenRef.current) {
+        setUnreadCount((prev) => prev + 1);
+      }
+      await simulateStreamDoneTask;
 
-		// speak audio if conditions are met
-		if (message.sender.toUpperCase() === "BOT" &&
-			(syncedIsChatWindowOpenRef.current || settings.general?.embedded)) {
-			if (typeof message.content === "string" && message.content.trim() !== "") {
-				speakAudio(message.content);
-			}
-		}
+      if (settings.event?.rcbStopSimulateStreamMessage) {
+        await dispatchRcbEvent(RcbEvent.STOP_SIMULATE_STREAM_MESSAGE, {
+          message,
+        });
+      }
 
-		const simulateStreamDoneTask: Promise<void> = new Promise((resolve) => {
-			const intervalId = setInterval(() => {
-				// consider streaming done once end index is reached or exceeded
-				// when streaming is done, remove task and resolve the promise
-				if (streamIndex >= endStreamIndex) {
-					clearInterval(intervalId);
-					resolve();
-					return;
-				}
+      if (sender === "USER") {
+        paramsInputRef.current = content;
+      }
+      return message;
+    },
+    [
+      settings,
+      dispatchRcbEvent,
+      handlePostMessagesUpdate,
+      syncedMessagesRef,
+      paramsInputRef,
+      setSyncedIsBotTyping,
+      setUnreadCount,
+      syncedIsChatWindowOpenRef,
+      speakAudio,
+    ]
+  );
 
-				setSyncedMessages((prevMessages) => {
-					const updatedMessages = [...prevMessages];
-					for (let i = updatedMessages.length - 1; i >= 0; i--) {
-						if (updatedMessages[i].id === placeholderMessage.id) {
-							const character = streamMessage[streamIndex];
-							if (character) {
-								placeholderMessage.content += character;
-								updatedMessages[i] = placeholderMessage;
-							}
-							streamIndex++;
-							break;
-						}
-					}
-					return updatedMessages;
-				});
-			}, streamSpeed);
-		});
+  const injectMessage = useCallback(
+    async (content: string | JSX.Element, sender = "BOT"): Promise<Message | null> => {
+      sender = sender.toUpperCase();
 
-		// if user is scrolling or window is closed, add 1 to unread count
-		if (syncedIsScrollingRef.current || !syncedIsChatWindowOpenRef.current) {
-			setUnreadCount((prev) => prev + 1);
-		}
-		await simulateStreamDoneTask;
-		saveChatHistory(syncedMessagesRef.current);
+      let message = createMessage(content, sender);
+      if (settings.event?.rcbPreInjectMessage) {
+        const event = await dispatchRcbEvent(RcbEvent.PRE_INJECT_MESSAGE, {
+          message,
+        });
+        if (event.defaultPrevented) {
+          return null;
+        }
+        message = event.data.message;
+      }
 
-		// handles stop stream message event
-		if (settings.event?.rcbStopSimulateStreamMessage) {
-			await dispatchRcbEvent(RcbEvent.STOP_SIMULATE_STREAM_MESSAGE, { message });
-		}
+      if (
+        message.sender.toUpperCase() === "BOT" &&
+        (syncedIsChatWindowOpenRef.current || settings.general?.embedded)
+      ) {
+        if (typeof message.content === "string" && message.content.trim() !== "") {
+          speakAudio(message.content);
+        }
+      }
 
-		// update params.userInput if sender is user
-		if (sender === "USER") {
-			paramsInputRef.current = content;
-		}
-		return message;
-	}, [settings, dispatchRcbEvent, handlePostMessagesUpdate, syncedMessagesRef, paramsInputRef,
-		setSyncedIsBotTyping, setUnreadCount, syncedIsChatWindowOpenRef, speakAudio
-	]);
+      if (syncedIsScrollingRef.current || !syncedIsChatWindowOpenRef.current) {
+        setUnreadCount((prev) => prev + 1);
+      }
 
-	/**
-	 * Injects a message at the end of the messages array.
-	 * 
-	 * @param content message content to inject
-	 * @param sender sender of the message, defaults to bot
-	 */
-	const injectMessage = useCallback(async (content: string | JSX.Element,
-		sender = "BOT"): Promise<Message | null> => {
+      if (settings.event?.rcbPostInjectMessage) {
+        await dispatchRcbEvent(RcbEvent.POST_INJECT_MESSAGE, { message });
+      }
 
-		// always convert to uppercase for checks
-		sender = sender.toUpperCase();
-		
-		let message = createMessage(content, sender);
-		if (settings.event?.rcbPreInjectMessage) {
-			const event = await dispatchRcbEvent(RcbEvent.PRE_INJECT_MESSAGE, { message });
-			if (event.defaultPrevented) {
-				return null;
-			}
-			message = event.data.message;
-		}
+      setSyncedMessages((prev) => [...prev, message]);
+      handlePostMessagesUpdate(syncedMessagesRef.current);
 
-		// speak audio if conditions are met
-		if (message.sender.toUpperCase() === "BOT" &&
-			(syncedIsChatWindowOpenRef.current || settings.general?.embedded)) {
-			if (typeof message.content === "string" && message.content.trim() !== "") {
-				speakAudio(message.content);
-			}
-		}
+      if (sender === "USER" && typeof content === "string") {
+        paramsInputRef.current = content;
+      }
+      return message;
+    },
+    [
+      settings,
+      dispatchRcbEvent,
+      handlePostMessagesUpdate,
+      paramsInputRef,
+      syncedMessagesRef,
+      syncedIsChatWindowOpenRef,
+      speakAudio,
+      setUnreadCount,
+    ]
+  );
 
-		// if user is scrolling or window is closed, add 1 to unread count
-		if (syncedIsScrollingRef.current || !syncedIsChatWindowOpenRef.current) {
-			setUnreadCount((prev) => prev + 1);
-		}
+  const removeMessage = useCallback(
+    async (messageId: string): Promise<Message | null> => {
+      const message = syncedMessagesRef.current.find((m) => m.id === messageId);
+      if (!message) {
+        return null;
+      }
 
-		// handles post-message inject event
-		if (settings.event?.rcbPostInjectMessage) {
-			await dispatchRcbEvent(RcbEvent.POST_INJECT_MESSAGE, { message });
-		}
+      if (settings.event?.rcbRemoveMessage) {
+        const event = await dispatchRcbEvent(RcbEvent.REMOVE_MESSAGE, { message });
+        if (event.defaultPrevented) {
+          return null;
+        }
+      }
 
-		setSyncedMessages(prev => [...prev, message]);
-		handlePostMessagesUpdate(syncedMessagesRef.current);
+      setSyncedMessages((prev) => prev.filter((m) => m.id !== messageId));
+      handlePostMessagesUpdate(syncedMessagesRef.current);
+      setUnreadCount((prev) => Math.max(prev - 1, 0));
+      return message;
+    },
+    [
+      dispatchRcbEvent,
+      settings.event?.rcbRemoveMessage,
+      handlePostMessagesUpdate,
+      syncedMessagesRef,
+      setUnreadCount,
+    ]
+  );
 
-		// update params.userInput if sender is user
-		if (sender === "USER" && typeof content === "string") {
-			paramsInputRef.current = content;
-		}
-		return message;
-	}, [settings, dispatchRcbEvent, handlePostMessagesUpdate, paramsInputRef,
-		syncedMessagesRef, syncedIsChatWindowOpenRef, speakAudio, setUnreadCount
-	]);
+  const streamMessage = useCallback(
+    async (
+      content: string | JSX.Element,
+      sender = "BOT"
+    ): Promise<Message | null> => {
+      sender = sender.toUpperCase();
 
-	/**
-	 * Removes a message with the given id.
-	 * 
-	 * @param messageId id of message to remove
-	 */
-	const removeMessage = useCallback(async (messageId: string): Promise<Message | null> => {
-		const message = syncedMessagesRef.current.find((m) => m.id === messageId);
+      if (!streamMessageMap.current.has(sender)) {
+        const message = createMessage(content, sender);
 
-		// nothing to remove if no such message
-		if (!message) {
-			return null;
-		}
+        if (settings.event?.rcbStartStreamMessage) {
+          const event = await dispatchRcbEvent(RcbEvent.START_STREAM_MESSAGE, {
+            message,
+          });
+          if (event.defaultPrevented) {
+            return null;
+          }
+        }
 
-		// handles remove message event
-		if (settings.event?.rcbRemoveMessage) {
-			const event = await dispatchRcbEvent(RcbEvent.REMOVE_MESSAGE, { message });
-			if (event.defaultPrevented) {
-				return null;
-			}
-		}
+        setSyncedIsBotTyping(false);
+        setSyncedMessages((prev) => [...prev, message]);
+        handlePostMessagesUpdate(syncedMessagesRef.current);
+        streamMessageMap.current.set(sender, message.id);
+        if (syncedIsScrollingRef.current || !syncedIsChatWindowOpenRef.current) {
+          setUnreadCount((prev) => prev + 1);
+        }
+        return message;
+      }
 
-		setSyncedMessages(prev =>
-			prev.filter(m => m.id !== messageId)
-		);
-		handlePostMessagesUpdate(syncedMessagesRef.current);
-		setUnreadCount((prev) => Math.max(prev - 1, 0));
-		return message;
-	}, [dispatchRcbEvent, settings.event?.rcbRemoveMessage, handlePostMessagesUpdate,
-		syncedMessagesRef, setUnreadCount
-	]);
+      const message = {
+        ...createMessage(content, sender),
+        id: streamMessageMap.current.get(sender)!,
+      };
 
-	/**
-	 * Streams data into the last message at the end of the messages array with given type.
-	 * 
-	 * @param content message content to inject
-	 * @param sender sender of the message, defaults to bot
-	 */
-	const streamMessage = useCallback(async (content: string | JSX.Element,
-		sender = "BOT"): Promise<Message | null> => {
+      if (settings.event?.rcbChunkStreamMessage) {
+        const event = await dispatchRcbEvent(RcbEvent.CHUNK_STREAM_MESSAGE, {
+          message,
+        });
+        if (event.defaultPrevented) {
+          return null;
+        }
+      }
 
-		// always convert to uppercase for checks
-		sender = sender.toUpperCase();
+      setSyncedMessages((prev) =>
+        prev.map((m) => (m.id === message.id ? message : m))
+      );
+      handlePostMessagesUpdate(syncedMessagesRef.current, true);
+      return message;
+    },
+    [
+      dispatchRcbEvent,
+      settings.event,
+      handlePostMessagesUpdate,
+      syncedMessagesRef,
+      setSyncedIsBotTyping,
+      setUnreadCount,
+      streamMessageMap,
+    ]
+  );
 
-		if (!streamMessageMap.current.has(sender)) {
-			const message = createMessage(content, sender);
+  const endStreamMessage = useCallback(
+    async (sender = "BOT"): Promise<boolean> => {
+      sender = sender.toUpperCase();
 
-			// handles start stream message event
-			if (settings.event?.rcbStartStreamMessage) {
-				const event = await dispatchRcbEvent(RcbEvent.START_STREAM_MESSAGE, { message });
-				if (event.defaultPrevented) {
-					return null;
-				}
-			}
+      if (!streamMessageMap.current.has(sender)) {
+        return true;
+      }
+      const messageId = streamMessageMap.current.get(sender)!;
 
-			setSyncedIsBotTyping(false);
-			setSyncedMessages(prev => [...prev, message]);
-			handlePostMessagesUpdate(syncedMessagesRef.current);
-			streamMessageMap.current.set(sender, message.id);
-			// if user is scrolling or window is closed, add 1 to unread count
-			if (syncedIsScrollingRef.current || !syncedIsChatWindowOpenRef.current) {
-				setUnreadCount((prev) => prev + 1);
-			}
-			return message;
-		}
+      let message;
+      for (let i = 0; i < 3; i++) {
+        const msg = syncedMessagesRef.current.find((m) => m.id === messageId);
+        if (msg) message = msg;
+        await new Promise((res) => setTimeout(res, 20));
+      }
 
-		const message = { ...createMessage(content, sender), id: streamMessageMap.current.get(sender)! };
-		// handles chunk stream message event
-		if (settings.event?.rcbChunkStreamMessage) {
-			const event = await dispatchRcbEvent(RcbEvent.CHUNK_STREAM_MESSAGE, { message });
-			if (event.defaultPrevented) {
-				return null;
-			}
-		}
-		setSyncedMessages(prev =>
-			prev.map(m => m.id === message.id ? message : m)
-		);
-		handlePostMessagesUpdate(syncedMessagesRef.current, true);
-		return message;
-	}, [dispatchRcbEvent, settings.event, handlePostMessagesUpdate,
-		syncedMessagesRef, setSyncedIsBotTyping, setUnreadCount, streamMessageMap
-	]);
+      if (settings.event?.rcbStopStreamMessage) {
+        const event = await dispatchRcbEvent(RcbEvent.STOP_STREAM_MESSAGE, {
+          message,
+        });
+        if (event.defaultPrevented) {
+          return false;
+        }
+      }
 
-	/**
-	 * Sets the streaming mode of the chatbot.
-	 * 
-	 * @param sender sender whose stream is being ended
-	 * 
-	 * Note: This is currently not critical to the functioning of `params.streamMessage` as the chatbot
-	 * automatically sets stream mode to true, and defaults to setting stream mode to false whenever a path
-	 * change is detected. This is however not ideal, because it results in lossy saving of chat history
-	 * for stream messages (cannot detect end stream accurately) and introduces unnecessary logic handling.
-	 * The matter of fact is that users know best when a stream ends so the ideal use case would be for users
-	 * to call `endStreamMessage()` when they're done with `params.streamMessage`. In v3, this behavior will
-	 * be made mandatory. Another key implication of not using `endStreamMessage` in v2 is that the stop stream
-	 * message event will not be emitted, which may be problematic for logic (or plugins) that rely on this event.
-	 */
-	const endStreamMessage = useCallback(async (sender = "BOT"): Promise<boolean> => {
-		// always convert to uppercase for checks
-		sender = sender.toUpperCase();
+      streamMessageMap.current.delete(sender);
 
-		// nothing to end if not streaming
-		if (!streamMessageMap.current.has(sender)) {
-			return true;
-		}
-		const messageId = streamMessageMap.current.get(sender)!;
+      if (sender === "USER" && typeof message?.content === "string") {
+        paramsInputRef.current = message.content;
+      }
+      return true;
+    },
+    [
+      dispatchRcbEvent,
+      settings.event?.rcbStopStreamMessage,
+      streamMessageMap,
+      paramsInputRef,
+    ]
+  );
 
-		// retrieves the message that the stream is ending on
-		// retries 3 times, handles edge case where messages are streamed and ended instantaneously
-		let message;
-		for (let i = 0; i < 3; i++) {
-			const msg = syncedMessagesRef.current.find((m) => m.id === messageId);
-			if (msg) message = msg;
-			await new Promise((res) => setTimeout(res, 20));
-		}
+  const replaceMessages = useCallback(
+    (newMessages: Array<Message>) => {
+      setSyncedMessages(newMessages);
+      handlePostMessagesUpdate(newMessages);
+    },
+    [handlePostMessagesUpdate]
+  );
 
-		// handles stop stream message event
-		if (settings.event?.rcbStopStreamMessage) {
-			const event = await dispatchRcbEvent(RcbEvent.STOP_STREAM_MESSAGE, { message });
-			if (event.defaultPrevented) {
-				return false;
-			}
-		}
-
-		// remove sender from streaming list and save messages
-		streamMessageMap.current.delete(sender);
-		saveChatHistory(syncedMessagesRef.current);
-
-		// update params.userInput if sender is user
-		if (sender === "USER" && typeof message?.content === "string") {
-			paramsInputRef.current = message.content;
-		}
-		return true;
-	}, [dispatchRcbEvent, settings.event?.rcbStopStreamMessage, streamMessageMap, paramsInputRef]);
-
-	/**
-	 * Replaces (overwrites entirely) the current messages with the new messages.
-	 * 
-	 * @param newMessages new messages to set/replace
-	 */
-	const replaceMessages = useCallback((newMessages: Array<Message>) => {
-		setSyncedMessages(newMessages);
-		handlePostMessagesUpdate(newMessages);
-	}, [handlePostMessagesUpdate])
-
-	return {
-		simulateStreamMessage,
-		injectMessage,
-		removeMessage,
-		streamMessage,
-		endStreamMessage,
-		replaceMessages,
-		messages,
-	};
+  return {
+    simulateStreamMessage,
+    injectMessage,
+    removeMessage,
+    streamMessage,
+    endStreamMessage,
+    replaceMessages,
+    messages,
+  };
 };

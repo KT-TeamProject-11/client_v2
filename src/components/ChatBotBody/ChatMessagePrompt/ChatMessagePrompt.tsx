@@ -12,73 +12,48 @@ import "./ChatMessagePrompt.css";
  * Provides scroll to bottom option for users when there are unread messages.
  */
 const ChatMessagePrompt = () => {
+  const { settings } = useSettingsContext();
+  const { styles } = useStylesContext();
+  const { unreadCount, isScrolling } = useBotStatesContext();
+  const { chatBodyRef } = useBotRefsContext();
+  const { scrollToBottom } = useChatWindowInternal();
 
-	// handles settings
-	const { settings } = useSettingsContext();
+  const [isHovered, setIsHovered] = useState<boolean>(false);
 
-	// handles styles
-	const { styles } = useStylesContext();
+  const chatMessagePromptHoveredStyle: React.CSSProperties = {
+    color: settings.general?.primaryColor,
+    borderColor: settings.general?.primaryColor,
+    ...styles.chatMessagePromptHoveredStyle
+  };
 
-	// handles bot states
-	const { unreadCount, isScrolling } = useBotStatesContext();
+  const handleMouseEnter = () => setIsHovered(true);
+  const handleMouseLeave = () => setIsHovered(false);
 
-	// handles bot refs
-	const { chatBodyRef } = useBotRefsContext();
+  const getMessagePromptVisibility = () => {
+    const shouldShowPrompt =
+      chatBodyRef.current &&
+      settings.chatWindow?.showMessagePrompt &&
+      isScrolling &&
+      unreadCount > 0;
+    return shouldShowPrompt ? "visible" : "hidden";
+  };
 
-	// handles chat window
-	const { scrollToBottom } = useChatWindowInternal();
-
-	// tracks if chat message prompt is hovered
-	const [isHovered, setIsHovered] = useState<boolean>(false);
-
-	// styles for chat message prompt hovered
-	const chatMessagePromptHoveredStyle: React.CSSProperties = {
-		color: settings.general?.primaryColor,
-		borderColor: settings.general?.primaryColor,
-		...styles.chatMessagePromptHoveredStyle
-	};
-
-	/**
-	 * Handles mouse enter event on chat message prompt.
-	 */
-	const handleMouseEnter = () => {
-		setIsHovered(true);
-	};
-
-	/**
-	 * Handles mouse leave event on chat message prompt.
-	 */
-	const handleMouseLeave = () => {
-		setIsHovered(false);
-	};
-
-	/**
-     * Checks visibility of message prompt for new messages.
-     */
-	const getMessagePromptVisibility = () => {
-		const shouldShowPrompt = chatBodyRef.current
-            && settings.chatWindow?.showMessagePrompt
-            && isScrolling
-            && unreadCount > 0;
-		return shouldShowPrompt ? "visible" : "hidden";
-	};
-
-	return (
-		<div className={`rcb-message-prompt-container ${getMessagePromptVisibility()}`}>
-			<div
-				onMouseEnter={handleMouseEnter}
-				onMouseLeave={handleMouseLeave} 
-				style={isHovered ? chatMessagePromptHoveredStyle : {...styles.chatMessagePromptStyle}}
-				onMouseDown={(event: MouseEvent) => {
-					event.preventDefault();
-					scrollToBottom(600);
-				}}
-				className="rcb-message-prompt-text"
-			>
-				{settings.chatWindow?.messagePromptText}
-			</div>
-		</div>
-	);
+  return (
+    <div className={`rcb-message-prompt-container ${getMessagePromptVisibility()}`}>
+      <div
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        style={isHovered ? chatMessagePromptHoveredStyle : { ...styles.chatMessagePromptStyle }}
+        onMouseDown={(event: MouseEvent) => {
+          event.preventDefault();
+          scrollToBottom(600);
+        }}
+        className="rcb-message-prompt-text"
+      >
+        {settings.chatWindow?.messagePromptText}
+      </div>
+    </div>
+  );
 };
 
 export default ChatMessagePrompt;
