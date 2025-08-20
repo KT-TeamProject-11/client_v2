@@ -33,7 +33,7 @@ export const useSubmitInputInternal = () => {
   const { showToast } = useToastsInternal();
   const { syncVoice } = useVoiceInternal();
 
-  const BACKEND_URL = "http://222.116.135.71:8555/chat"; //로컬로 변경하세요 주소
+  const BACKEND_URL = "http://localhost:8555/chat"; //로컬로 변경하세요 주소
 
   /** 유저 말풍선 출력 */
   const handleSendUserInput = useCallback(

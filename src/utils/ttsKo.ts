@@ -8,7 +8,7 @@ function resolveBaseUrl(): string {
     const v = meta?.getAttribute("content");
     if (v) return v.replace(/\/+$/, "");
   }
-  return "http://222.116.135.71:8555";
+  return "http://localhost:8555";
 }
 const BASE_URL = resolveBaseUrl();
 

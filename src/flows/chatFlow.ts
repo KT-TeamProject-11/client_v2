@@ -2,7 +2,7 @@ import { Flow } from "../types/Flow";
 import { Params } from "../types/Params";
 import { speak, cancelTTS } from "../utils/ttsKo";
 
-const BACKEND_URL = "http://222.116.135.71:8555/chat";
+const BACKEND_URL = "http://localhost:8555/chat";
 
 // flow를 생성하는 함수
 export const createChatFlow = (audioToggledOn: boolean): Flow => ({
