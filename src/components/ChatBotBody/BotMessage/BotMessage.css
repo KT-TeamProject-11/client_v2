@@ -1,69 +1,141 @@
 /* Bot Messages */
 
 .rcb-bot-message-container {
-	display: flex;
-	flex-direction: row;
+  display: flex;
+  flex-direction: row;
 }
 
 .rcb-bot-message {
-	margin-top: 8px;
-	padding: 12px 16px;
-	border-radius: 22px;
-	min-height: 20px;
-	height: fit-content;
-	width: fit-content;
-	font-size: 15px;
-	overflow-wrap: anywhere;
-	overflow: visible; 
-	white-space: pre-wrap;
-	text-align: left;
-	margin-left: 16px;
+  margin-top: 8px;
+  padding: 12px 16px;
+  border-radius: 22px;
+  min-height: 20px;
+  height: fit-content;
+  width: fit-content;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+  overflow: visible;
+  white-space: pre-wrap;
+  text-align: left;
+  margin-left: 16px;
 }
 
-.rcb-bot-message-offset {
-	margin-left: 50px;
-}
+.rcb-bot-message-offset { margin-left: 50px; }
 
 .rcb-bot-message-entry {
-	animation: rcb-animation-bot-message-entry 0.3s ease-in backwards;
+  animation: rcb-animation-bot-message-entry 0.3s ease-in backwards;
 }
 
 .rcb-message-bot-avatar {
-	background-size: cover;
-	width: 40px;
-	height: 40px;
-	border-radius: 50%;
-	margin-top: 9px;
-	margin-left: 6px;
-	margin-right: -10px;
+  background-size: cover;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-top: 9px;
+  margin-left: 6px;
+  margin-right: -10px;
 }
 
-/* ✅ 옵션 버튼 스타일 */
-
+/* ✅ 옵션(퀵리플라이) 버튼: 말풍선 내부 */
 .rcb-option-buttons {
-	display: grid;
-	grid-template-columns: repeat(2, 1fr); /* 2열로 배치 */
-	gap: 8px;
-	margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2열 */
+  gap: 8px;
+  margin-top: 12px;
 }
-
 .rcb-option-button {
-	background-color: #ffffff;
-	color: #333;
-	padding: 10px 12px;
-	border: 1px solid #ddd;
-	border-radius: 12px;
-	cursor: pointer;
-	transition: background-color 0.2s ease;
-	font-size: 14px;
-	text-align: center;
+  background-color: #ffffff;
+  color: #333;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 14px;
+  text-align: center;
+}
+.rcb-option-button:hover { background-color: #f5f5f5; }
+
+.message-content a { word-break: break-word; }
+
+/* 밖으로 쌓는 래퍼 */
+.rcb-bot-stack { display: flex; flex-direction: column; align-items: flex-start; }
+
+/* 공통(기본) 버튼 컨테이너 – 내부/기타에서 사용 */
+.rcb-link-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.rcb-link-button {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 14px;
+  text-decoration: none;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: #fff;
+  color: #333;
+  font-size: 13px;
+  line-height: 1;
+  transition: transform .05s ease, box-shadow .15s ease;
+}
+.rcb-link-button:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+.rcb-link-button:active { transform: translateY(1px); }
+
+/* 🔧 말풍선 아래(밖) 버튼: 2열 그리드 + 말풍선과 정렬 */
+.rcb-link-buttons-outside {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+  margin-left: 16px;            /* 말풍선 좌측과 정렬 */
+}
+.rcb-link-buttons-outside--offset { margin-left: 50px; }
+
+/* 그리드 셀을 꽉 채우는 칩 스타일 */
+.rcb-link-buttons-outside .rcb-link-button {
+  display: block;               /* 셀 전체 클릭 가능 */
+  width: 100%;
+  text-align: center;
+  padding: 10px 12px;
+  border-radius: 18px;
+  text-decoration: none;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: #fff;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.2;
+
+  /* 라벨 길면 한 줄로 … 처리 (두 줄 허용하려면 아래 3줄 삭제) */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  box-shadow: 0 1px 0 rgba(0,0,0,.03);
+  transition: transform .05s ease, box-shadow .15s ease, background-color .15s ease;
+}
+.rcb-link-buttons-outside .rcb-link-button:hover { background: #fafafa; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+.rcb-link-buttons-outside .rcb-link-button:active { transform: translateY(1px); }
+
+/* 화면 매우 좁을 때 1열로 변경 */
+@media (max-width: 360px) {
+  .rcb-link-buttons-outside { grid-template-columns: 1fr; }
 }
 
-.rcb-option-button:hover {
-	background-color: #f5f5f5;
-}
+/* 말풍선 내부에 들어온 버튼 묶음은 숨김(밖으로 복제해서 보여줌) */
+.message-content .rcb-link-buttons { display: none !important; }
 
-.message-content a {
-  word-break: break-word;   /* 긴 링크도 줄바꿈 */
+.message-content {
+  line-height: 1.45;
 }
-
+.message-content p,
+.message-content ul,
+.message-content ol,
+.message-content h1,
+.message-content h2,
+.message-content h3,
+.message-content h4,
+.message-content h5,
+.message-content h6 {
+  margin: 0; /* 기본 margin 제거 */
+}
+/* 문단이 연속될 때만 살짝 간격 */
+.message-content p + p { margin-top: 6px; }
