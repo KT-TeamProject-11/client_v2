@@ -1,6 +1,12 @@
 # 천안 도시재생지원센터 챗봇 (React + Vite)
 
-천안시 도시재생지원센터 전용 챗봇 **프론트엔드**입니다. <br>
+[![React](https://img.shields.io/badge/React-18.3.1-61DAFB.svg?logo=react&logoColor=white)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-6.3.4-646CFF.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7.3-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Chatbotify](https://img.shields.io/badge/Chatbotify-2.3.0-ff4081.svg)](https://github.com/walkxcode/react-chatbotify)
+[![DOMPurify](https://img.shields.io/badge/DOMPurify-3.2.6-brightgreen.svg)](https://github.com/cure53/DOMPurify)
+
+천안시 도시재생지원센터 전용 챗봇 **프론트엔드**입니다.  
 React 기반 UI 프레임워크인 [react-chatbotify](https://github.com/react-chatbotify/react-chatbotify.git) 를 기반으로 커스터마이징했습니다.
 
 
@@ -17,11 +23,11 @@ React 기반 UI 프레임워크인 [react-chatbotify](https://github.com/react-c
 ## 🤖 디렉터리 구조
 ```
 frontend/
-├─ __tests__/          # 테스트 코드
+├─ __tests__/          
 ├─ assets/             # 정적 리소스
 ├─ cypress/            # E2E 테스트
 ├─ docs/               # 프로젝트 문서
-├─ public/             # 배포 정적 파일
+├─ public/             
 ├─ scripts/            # 빌드/배포 스크립트
 ├─ src/                # 애플리케이션 소스
 │  ├─ components/      # UI 컴포넌트
@@ -30,8 +36,8 @@ frontend/
 │  ├─ utils/           # 유틸 함수
 │  └─ App.tsx / index.tsx
 ├─ ssr/                # 서버사이드 렌더링
-├─ types/              # 전역 타입 정의
-├─ .env                # 환경 변수
+├─ types/              
+├─ .env                
 ├─ package.json
 └─ vite.config.js
 ```
@@ -53,13 +59,13 @@ npm start
 ---
 
 ## 🤖 백엔드 연동
-- 별도 백엔드 레포 : [server] (https://github.com/KT-TeamProject-11/server.git)
+- 별도 백엔드 레포 : [server](https://github.com/KT-TeamProject-11/server.git)
 - 기본 API 서버 : http://localhost:8555/
 
 ---
 
 ## 🤖 화면 예시
-<img src = "https://imgur.com/EZCYHhP.jpg">
+<img src = "https://imgur.com/EZCYHhP.jpg" width="480px">
 
 - **메시지 입력창 :** 사용자가 직접 질문 입력 가능
 - **옵션 버튼 :** 인사말, 공지사항 등 주요 메뉴 원클릭으로 조회 가능
