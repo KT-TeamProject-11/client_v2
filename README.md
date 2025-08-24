@@ -1,6 +1,6 @@
 # 천안 도시재생지원센터 챗봇 (React + Vite)
 
-천안시 도시재생지원센터 전용 챗봇 **프론트엔드**입니다.
+천안시 도시재생지원센터 전용 챗봇 **프론트엔드**입니다. <br>
 React 기반 UI 프레임워크인 [react-chatbotify](https://github.com/react-chatbotify/react-chatbotify.git) 를 기반으로 커스터마이징했습니다.
 
 
